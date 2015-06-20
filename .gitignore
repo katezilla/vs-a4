@@ -1,1 +1,4 @@
 archiv/
+*.o
+clocksync/clocksync
+clocksync/sniffer

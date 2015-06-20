@@ -65,13 +65,12 @@ int main(int argc, char** argv) {
     sigset_t sigset;
     uint64_t superframeStartTime;
     uint64_t timeOffset;
-    uint64_t nsecNow;
+    uint64_t timeOffsetExtern;
     int finished;
 
     struct itimerspec tspec;
 
     unsigned int frameCounter;
-    unsigned int lastFrameCounter;
 
     uint32_t beaconDelay;
 
@@ -85,7 +84,7 @@ int main(int argc, char** argv) {
     hostname[127] = '\0';
     int port = atoi( argv[2] );
     char * adresse = argv[3];
-    int slotnummer = atoi( argv[3] );
+    int slotnummer = atoi( argv[4] );
     uint64_t timeOffsetMidOwnSlot = (20LL /*Beacon-Fenster*/ + 4 /*Sicherheitspause*/ 
       + (slotnummer-1)*4 /*Zeit bis zu eigenem slot*/ + (4/2) /*halbe slotlaenge*/);
     
@@ -134,13 +133,13 @@ int main(int argc, char** argv) {
 
     //Framecounter initialisieren
     frameCounter = 0;
-    lastFrameCounter = 0;
     superframeStartTime = 0;
 
     //Differenz zwischen der realen Zeit und der synchronisierten Anwendungszeit.
     //Die synchronisierte Anwendungszeit ergibt sich aus der Beaconnummer.
     //Sie wird gerechnet vom Startzeitpunkt des Superframes mit der Beaconnummer 0
     timeOffset = 0;
+    timeOffsetExtern = 0;
 
     /* wait 3 superframes for beacon from other units !TODO: check!*/
     clock_gettime(CLOCK, &now);
@@ -275,11 +274,11 @@ int main(int argc, char** argv) {
                     printf( "### Invalid Beacon: '%s'\n", buf );
                   } else {
                     printf("beacon arrived before sending own beacon.\n");
-                    timeOffsetBeacon = timespec2nsec(&now) - (frameCounter * 100LL /* msec */*1000*1000) - beaconDelay;
+                    timeOffsetExtern = timespec2nsec(&now) - (frameCounter * 100LL /* msec */*1000*1000) - beaconDelay;
                     
                     // check, if other starttime is before own calculated offset and adjust offset if needed
-                    if(timeOffsetBeacon < timeOffset){
-                      timeOffset = timeOffsetBeacon;
+                    if(timeOffsetExtern < timeOffset){
+                      timeOffset = timeOffsetExtern;
                     }
                     
                     //Berechne den Zeitpunkt, an dem der Superframe begann
@@ -310,7 +309,7 @@ int main(int argc, char** argv) {
             switch(signr){
               case SIGALRM:
                 // send own datagram
-                encodeSlotMessage(output, sizeof(output), slot, hostname);
+                encodeSlotMessage(output, sizeof(output), slotnummer, hostname);
                 sendMessage(fd, output, adresse, port);
                 
                 // calculate own random delay for next beacon
