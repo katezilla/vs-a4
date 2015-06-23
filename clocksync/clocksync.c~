@@ -324,7 +324,6 @@ int main(int argc, char** argv) {
                 state = AWAIT_BEACON;
                 break; // case SIGALRM
               case SIGIO:
-                //TODO: maybe error message?
                 break; // case SIGIO
               case SIGINT:
                 printf("received SIGINT, shutting down.\n");
